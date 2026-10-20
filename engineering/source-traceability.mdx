@@ -1,0 +1,30 @@
+---
+title: "Source Traceability"
+description: "Java classes and configuration files underlying the documentation"
+icon: "file-code"
+---
+
+> **Documentation status:** This page describes the inspected backend source, not a verified production deployment. Implemented behavior and recommended changes are explicitly distinguished.
+
+| Area | Main files used for this document |
+| --- | --- |
+| Build / stack | `pom.xml`, `library-system/pom.xml` |
+| Startup / settings | `library-system/src/main/java/com/javabs/AppRun.java`, `library-system/src/main/resources/config/*.yml` |
+| Reservations | `library-system/src/main/java/com/javabs/modules/library/rest/LibraryYuyueController.java`, `.../domain/LibraryYuyue.java`, `.../service/impl/LibraryYuyueServiceImpl.java` |
+| Seats and rooms | `.../rest/LibrarySeatController.java`, `.../rest/LibraryRoomController.java`, related entities/services |
+| Books and violations | `.../rest/LibraryBookController.java`, `.../rest/LibraryVolationController.java` |
+| AuthN/AuthZ | `.../modules/security/rest/AuthorizationController.java`, `.../security/config/SpringSecurityConfig.java`, `.../security/security/TokenProvider.java` |
+| Identity verification | `.../com/javabs/config/AccessToken.java` |
+| API envelopes / errors | `library-common/src/main/java/com/javabs/utils/PageUtil.java`, `.../exception/handler/GlobalExceptionHandler.java` |
+
+---
+
+**Document status:** Source-grounded engineering reference. No production-readiness certification is implied. Update this guide when API handlers, schema, authentication or deployment configuration change.
+
+## Inspect the implementation
+
+- [Root Maven POM](https://github.com/lycoris9029/Library-Reservation-System/blob/main/pom.xml)
+
+## Related pages
+
+[Backend API contract](/engineering/api-contract) · [Architecture overview](/engineering/system-architecture)

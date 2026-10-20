@@ -1,0 +1,39 @@
+---
+title: "Seat Reservation Workflow"
+description: "Authentication, eligibility checks, reservation creation, and consistency risks"
+icon: "calendar-check"
+---
+
+> **Documentation status:** This page describes the inspected backend source, not a verified production deployment. Implemented behavior and recommended changes are explicitly distinguished.
+
+```mermaid
+sequenceDiagram
+  participant U as Authenticated User
+  participant C as Reservation Controller
+  participant S as Seat Service
+  participant R as Reservation Service
+  participant DB as MySQL
+  U->>C: POST /api/libraryYuyue {seatId}
+  C->>C: Read user identity and credit (num)
+  alt Credit < 0
+    C-->>U: "Insufficient credit" (HTTP 201 in current code)
+  else Credit >= 0
+    C->>S: Find seat
+    C->>S: Set seat.status = 2
+    S->>DB: Save seat
+    C->>R: Create reservation (status = 0)
+    R->>DB: Save reservation
+    C-->>U: Created reservation (HTTP 201)
+  end
+```
+
+The server sets the reservation owner from the authenticated session, rather than trusting `userId` in the request body. It copies the seat and room display names from the selected seat. **No atomic seat claim, availability check, or encompassing transaction appears in the inspected controller**, leaving a risk of concurrent duplicate reservations or partial updates.
+
+## Inspect the implementation
+
+- [Reservation controller](https://github.com/lycoris9029/Library-Reservation-System/blob/main/library-system/src/main/java/com/javabs/modules/library/rest/LibraryYuyueController.java)
+- [Seat service](https://github.com/lycoris9029/Library-Reservation-System/blob/main/library-system/src/main/java/com/javabs/modules/library/service/impl/LibrarySeatServiceImpl.java)
+
+## Related pages
+
+[Existing reservation feature docs](/engineering/reservation-workflow) · [Reservation API reference](/engineering/api-contract)

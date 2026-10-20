@@ -1,0 +1,64 @@
+---
+title: "Build and Deployment"
+description: "Prerequisites, environment configuration, Maven launch, and smoke checks"
+icon: "terminal"
+---
+
+> **Documentation status:** This page describes the inspected backend source, not a verified production deployment. Implemented behavior and recommended changes are explicitly distinguished.
+
+## Prerequisites
+
+- JDK compatible with Java 8 project configuration.
+- Maven.
+- Accessible MySQL server with the **required schema already provisioned**.
+- Accessible Redis instance.
+- Optional availability of the external face-comparison service for check-in/check-out tests.
+
+**Schema prerequisite:** `spring.jpa.hibernate.ddl-auto` is configured as `none`. The reviewed source archive does not include a verified database schema migration package or seed SQL; database tables must therefore be provisioned separately before the application can function.
+
+## Configuration sources
+
+| File | Primary responsibility |
+| --- | --- |
+| `library-system/src/main/resources/config/application.yml` | Server port, default profile, Redis defaults, JPA settings, file limits |
+| `library-system/src/main/resources/config/application-dev.yml` | Development MySQL datasource, login/captcha, JWT, Swagger and file-storage settings |
+| `pom.xml` | Project version, Java level, module aggregation and dependencies |
+
+Configured server port is **8000**, and default active profile is **dev**. Redis defaults include `REDIS_HOST`, `REDIS_PORT`, and `REDIS_DB` environment substitutions. The supplied dev profile uses a Windows-style file storage path, which must be adapted on Linux/macOS.
+
+**Important security prerequisite:** The repository includes environment-specific secrets/credentials in source files, including a third-party face API credential in `AccessToken.java`. Remove and rotate exposed values before making the repository public. Use environment variables or an external secret manager; the README intentionally does not reproduce their values.
+
+## Build and launch
+
+```bash
+# Run in the repository root.
+mvn -pl library-system -am clean package
+
+# Option A: run Spring Boot from Maven
+mvn -pl library-system -am spring-boot:run
+
+# Option B: execute the packaged JAR (artifact name depends on the build)
+java -jar library-system/target/<generated-jar-name>.jar
+```
+
+> The original POM configures Surefire to skip tests during normal builds. A successful `package` command is **not** evidence that tests ran or passed. The commands above are operational guidance based on the project structure, not commands verified against a configured database in this review.
+
+## Minimal smoke-check plan
+
+1. Confirm the app starts with the configured profile and an accessible MySQL/Redis.
+2. `GET /` returns the source-defined startup message.
+3. `GET /auth/code` returns a captcha image and UUID.
+4. Complete a login using the project's supported RSA-encrypted password flow.
+5. Retrieve a room/seat list with a JWT and necessary permission.
+6. Create a test seat and reservation; verify the stored room/seat IDs and statuses.
+7. Test sign-in/sign-out only in a consented development environment with controlled images.
+8. Verify seat release and report-processing behavior, including expected failure cases.
+
+## Inspect the implementation
+
+- [Base application configuration](https://github.com/lycoris9029/Library-Reservation-System/blob/main/library-system/src/main/resources/config/application.yml)
+- [Root POM](https://github.com/lycoris9029/Library-Reservation-System/blob/main/pom.xml)
+
+## Related pages
+
+[Current quickstart](/quickstart) · [Current environment configuration](/engineering/deployment)

@@ -1,0 +1,46 @@
+---
+title: "Engineering and Security Review"
+description: "Source-grounded risks, severity, and recommended mitigation"
+icon: "shield-alert"
+---
+
+> **Documentation status:** This page describes the inspected backend source, not a verified production deployment. Implemented behavior and recommended changes are explicitly distinguished.
+
+The following observations are based on **static source review**, not penetration testing. Priorities reflect potential impact; they are not proof of exploitability in a particular deployment.
+
+| Priority | Observation (as built) | Recommended correction |
+| --- | --- | --- |
+| Critical | Credentials / third-party API secret appear in tracked source configuration and `AccessToken.java` | Rotate exposed secrets; migrate to environment variables or secrets manager; scan history |
+| High | Reservation creation does not check `seat.status` before setting it to occupied and saving the reservation | Atomic seat claim with transaction + DB constraint / optimistic locking |
+| High | Attendance and temporary-leave APIs do not explicitly verify ownership of reservation `id` | Bind reservation to authenticated user; check role/ownership before mutation |
+| High | Client controls attendance `status` and generic reservation update has broad field access | Server-side transition methods and DTO allowlists; reject illegal transitions |
+| High | Seat status update and reservation create are separate service calls without a surrounding transaction | Transactional orchestration and rollback on failure |
+| High | Violation processing can apply deduction repeatedly; processing and user score update are separate operations | Idempotent processing transition and single transaction with audit trail |
+| Medium | `GET /api/libraryYuyue` forces own-user filter, but export endpoint does not | Apply consistent data-scope filtering on every list/export path |
+| Medium | Face comparison checks image extension and score only in controller | Validate MIME/content, file size, liveness/consent, safe storage/retention |
+| Medium | Several failure branches return HTTP 201 rather than a suitable error code | Standardized error mapping, e.g. 400/403/409 with machine-readable codes |
+| Medium | `ddl-auto: none` and no verified migrations in archive | Add Flyway/Liquibase migrations, schema and seed guide |
+| Medium | Project inherits older framework/dependency versions | Upgrade supported dependency stack; perform SCA vulnerability scan |
+| Low | Mixed Chinese/English API messages and legacy endpoint spellings | Versioned API contract, stable error codes and language strategy |
+
+### Recommended atomic reservation algorithm
+
+```text
+BEGIN TRANSACTION
+  1. Load authenticated user and check credit eligibility.
+  2. Atomically reserve seat WHERE id = :seatId AND status = AVAILABLE.
+  3. If no row was updated, return 409 SEAT_UNAVAILABLE.
+  4. Insert reservation linked to authenticated user; status = NOT_CHECKED_IN.
+COMMIT
+```
+
+This is a **proposed improvement**, not the behavior currently implemented.
+
+## Inspect the implementation
+
+- [Reservation controller](https://github.com/lycoris9029/Library-Reservation-System/blob/main/library-system/src/main/java/com/javabs/modules/library/rest/LibraryYuyueController.java)
+- [Violation controller](https://github.com/lycoris9029/Library-Reservation-System/blob/main/library-system/src/main/java/com/javabs/modules/library/rest/LibraryVolationController.java)
+
+## Related pages
+
+[Deployment requirements](/engineering/deployment) · [Testing strategy](/engineering/testing)

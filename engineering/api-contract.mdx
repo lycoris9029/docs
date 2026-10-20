@@ -1,0 +1,127 @@
+---
+title: "Backend API Contract"
+description: "Concrete HTTP routes, permissions, request shapes, and response caveats"
+icon: "code-2"
+---
+
+> **Documentation status:** This page describes the inspected backend source, not a verified production deployment. Implemented behavior and recommended changes are explicitly distinguished.
+
+**Base URL (configured):** `http://localhost:8000` when run locally.  
+**Authentication:** `Authorization: Bearer <JWT>` for protected endpoints.  
+**Content type:** JSON unless otherwise noted.  
+**Pagination:** Spring Data `Pageable` (`page`, `size`, `sort`); the library service's response envelope contains `content` and `totalElements`.
+
+## Authentication endpoints
+
+| Method | Endpoint | Purpose / request |
+| --- | --- | --- |
+| `GET` | `/auth/code` | Get captcha image (base64) and Redis-backed `uuid`; anonymous |
+| `POST` | `/auth/login` | Username, **RSA-encrypted** password, captcha `code` and `uuid`; anonymous |
+| `GET` | `/auth/info` | Current authenticated user's information |
+| `DELETE` | `/auth/logout` | Remove online token/session entry |
+
+Authentication request fields are defined in `AuthUserDto`. The login response contains a `token` string prefixed with `Bearer` and a `user` object. Do **not** use plaintext passwords with the current login implementation: the controller explicitly decrypts the submitted password with RSA before authentication.
+
+## Core library endpoints
+
+| Method | Endpoint | Source permission | Implementation notes |
+| --- | --- | --- | --- |
+| `GET` | `/api/libraryRoom` | `libraryRoom:list` | Search/pagination |
+| `GET` | `/api/libraryRoom/select` | Authenticated | Room options; no method-level permission annotation |
+| `POST` | `/api/libraryRoom` | `libraryRoom:add` | Create room |
+| `PUT` | `/api/libraryRoom` | `libraryRoom:edit` | Update room |
+| `DELETE` | `/api/libraryRoom` | `libraryRoom:del` | JSON array of IDs |
+| `GET` | `/api/libraryRoom/download` | `libraryRoom:list` | Excel export |
+| `GET` | `/api/librarySeat` | `librarySeat:list` | Filter by seat `card`, room name |
+| `POST` | `/api/librarySeat` | `librarySeat:add` | Sets initial `status=1` |
+| `PUT` | `/api/librarySeat` | `librarySeat:edit` | Updates seat and denormalized room name |
+| `DELETE` | `/api/librarySeat` | `librarySeat:del` | JSON array of IDs |
+| `GET` | `/api/librarySeat/download` | `librarySeat:list` | Excel export |
+| `GET` | `/api/libraryYuyue` | `libraryYuyue:list` | Forces filter to authenticated user's ID |
+| `POST` | `/api/libraryYuyue` | `librarySeat:yuyue` | Creates reservation; sets seat status to 2 |
+| `PUT` | `/api/libraryYuyue` | `libraryYuyue:edit` | Direct update |
+| `DELETE` | `/api/libraryYuyue` | `libraryYuyue:del` | Deletes IDs; returns a temporary-leave message |
+| `GET` | `/api/libraryYuyue/download` | `libraryYuyue:list` | Export (does not force self-only criterion) |
+| `POST` | `/api/libraryYuyue/li` | Authenticated | Temporary-leave update; status supplied by caller |
+| `POST` | `/api/libraryYuyue/dao` | Authenticated | Multipart check-in; face comparison |
+| `POST` | `/api/libraryYuyue/tui` | Authenticated | Multipart check-out; releases seat |
+| `GET` | `/api/libraryBook` | `libraryBook:list` | Catalog query |
+| `POST` | `/api/libraryBook` | `libraryBook:add` | Create catalog item |
+| `PUT` | `/api/libraryBook` | `libraryBook:edit` | Update catalog item |
+| `DELETE` | `/api/libraryBook` | `libraryBook:del` | Delete catalog IDs |
+| `GET` | `/api/libraryBook/download` | `libraryBook:list` | Excel export |
+| `GET` | `/api/libraryVolation` | `libraryVolation:list` | List reports |
+| `POST` | `/api/libraryVolation` | `libraryVolation:add` | Report a user |
+| `PUT` | `/api/libraryVolation` | `libraryVolation:edit` | Update report |
+| `DELETE` | `/api/libraryVolation` | `libraryVolation:del` | Delete report IDs |
+| `GET` | `/api/libraryVolation/download` | `libraryVolation:list` | Excel export |
+| `POST` | `/api/libraryVolation/chuli` | `libraryVolation:chuli` | Process report and adjust credit |
+
+**Path note:** Endpoint spelling such as `libraryYuyue` and `libraryVolation` is preserved verbatim from the repository. `libraryVolation` appears to be the source's identifier for violation reports; changing it would break existing clients unless versioned.
+
+## Illustrative API calls
+
+**List seats**
+
+```bash
+curl -H 'Authorization: Bearer <JWT>' \
+  'http://localhost:8000/api/librarySeat?page=0&size=10'
+```
+
+**Create a seat** (requires `librarySeat:add` permission)
+
+```bash
+curl -X POST 'http://localhost:8000/api/librarySeat' \
+  -H 'Authorization: Bearer <JWT>' \
+  -H 'Content-Type: application/json' \
+  -d '{"card":"A-101","roomId":1}'
+```
+
+**Create a reservation** (requires `librarySeat:yuyue` permission)
+
+```bash
+curl -X POST 'http://localhost:8000/api/libraryYuyue' \
+  -H 'Authorization: Bearer <JWT>' \
+  -H 'Content-Type: application/json' \
+  -d '{"seatId":1}'
+```
+
+**Check in with an image** (requires authenticated session)
+
+```bash
+curl -X POST 'http://localhost:8000/api/libraryYuyue/dao' \
+  -H 'Authorization: Bearer <JWT>' \
+  -F 'file=@checkin.jpg' \
+  -F 'id=1' \
+  -F 'status=1'
+```
+
+**Check out and release the seat**
+
+```bash
+curl -X POST 'http://localhost:8000/api/libraryYuyue/tui' \
+  -H 'Authorization: Bearer <JWT>' \
+  -F 'file=@checkout.jpg' \
+  -F 'id=1' \
+  -F 'status=3'
+```
+
+These are **request-format illustrations** derived from controller method signatures; they are not evidence that the commands were executed successfully on a deployed instance.
+
+## Response conventions and caveats
+
+- Paged library GET responses return `{ "content": [...], "totalElements": n }`.
+- Successful create operations generally respond with HTTP **201 Created** and the created DTO/entity.
+- Successful updates generally respond with **204 No Content**.
+- Library DELETE operations accept an array of integer IDs in the JSON request body.
+- The current reservation denial on insufficient credit returns HTTP **201** with a Chinese error message, which is semantically misleading. The `DELETE /api/libraryYuyue` handler also returns HTTP **201** with a temporary-leave message despite deleting entries.
+- Error responses are formatted through `GlobalExceptionHandler` / `ApiError`; do not assume every possible error follows a uniform frontend-friendly contract.
+
+## Inspect the implementation
+
+- [Reservation endpoints](https://github.com/lycoris9029/Library-Reservation-System/blob/main/library-system/src/main/java/com/javabs/modules/library/rest/LibraryYuyueController.java)
+- [Authentication endpoints](https://github.com/lycoris9029/Library-Reservation-System/blob/main/library-system/src/main/java/com/javabs/modules/security/rest/AuthorizationController.java)
+
+## Related pages
+
+[Existing reservation API](/engineering/api-contract) · [Existing authentication API](/engineering/api-contract)

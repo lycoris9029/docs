@@ -1,0 +1,24 @@
+---
+title: "Face-Verified Attendance"
+description: "Check-in, check-out, third-party face comparison, and operational concerns"
+icon: "scan-face"
+---
+
+> **Documentation status:** This page describes the inspected backend source, not a verified production deployment. Implemented behavior and recommended changes are explicitly distinguished.
+
+1. The user submits a multipart image upload (`file`) and reservation ID (`id`).
+2. The backend checks the uploaded file extension against an image-extension list.
+3. It saves the upload and reads the authenticated user's previously stored avatar image.
+4. `AccessToken.idCard(avatarPath, uploadedFilePath)` calls Baidu's face comparison API.
+5. If the returned score is at least **80**, the controller updates reservation timing and state.
+6. On check-out, the controller additionally resets the associated seat status to `1` (available).
+
+**Security note:** The face-score threshold is a software rule, not evidence of validated biometric reliability. There is no explicit liveness check in the inspected workflow; face data and third-party API calls require appropriate consent, retention and security controls.
+
+## Inspect the implementation
+
+- [Reservation controller](https://github.com/lycoris9029/Library-Reservation-System/blob/main/library-system/src/main/java/com/javabs/modules/library/rest/LibraryYuyueController.java)
+
+## Related pages
+
+[Face recognition feature docs](/engineering/attendance) · [Authentication model](/engineering/authentication)

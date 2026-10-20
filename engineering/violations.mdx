@@ -1,0 +1,22 @@
+---
+title: "Violations and Administration"
+description: "Violation reports, credit deduction, exports, and administration"
+icon: "clipboard-list"
+---
+
+> **Documentation status:** This page describes the inspected backend source, not a verified production deployment. Implemented behavior and recommended changes are explicitly distinguished.
+
+`POST /api/libraryVolation` creates a report using the authenticated user's ID as `sendId`, initializes `status=0` and `num=0`, and resolves the reported user's display name. `POST /api/libraryVolation/chuli` processes a report: when status is `2`, deduction is set to zero; otherwise the supplied deduction is subtracted from the reported user's `num` value. The code does not show a separate idempotency guard for repeated processing.
+
+## Administrative CRUD and exports
+
+Books, rooms, seats, reservations and violations each expose a paginated GET, POST, PUT, DELETE and `GET /download` Excel export. The administrative platform also implements users, roles, permissions, menu configuration, departments, jobs, dictionaries, online-user management and basic monitoring.
+
+## Inspect the implementation
+
+- [Violation controller](https://github.com/lycoris9029/Library-Reservation-System/blob/main/library-system/src/main/java/com/javabs/modules/library/rest/LibraryVolationController.java)
+- [Book controller](https://github.com/lycoris9029/Library-Reservation-System/blob/main/library-system/src/main/java/com/javabs/modules/library/rest/LibraryBookController.java)
+
+## Related pages
+
+[Existing violation docs](/engineering/violations) · [Existing book feature docs](/engineering/data-model)

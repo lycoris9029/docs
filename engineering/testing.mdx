@@ -1,0 +1,37 @@
+---
+title: "Testing Strategy"
+description: "Existing test coverage and prioritized integration-test plan"
+icon: "list-checks"
+---
+
+> **Documentation status:** This page describes the inspected backend source, not a verified production deployment. Implemented behavior and recommended changes are explicitly distinguished.
+
+### Current repository evidence
+
+- Utility unit tests exist in `library-common/src/test/java`.
+- One application test class exists in `library-system/src/test/java`.
+- The POM configures Maven Surefire to skip tests during the default build lifecycle.
+- No complete integration or concurrency test suite for reservation/check-in/violation workflows was evident in the reviewed archive.
+
+### Recommended test coverage
+
+| Test group | Example cases |
+| --- | --- |
+| Authentication | Valid/invalid credentials, expired captcha, missing token, invalid JWT |
+| Authorization | Missing permission, user reading another user's reservations, export scope |
+| Reservation | Seat available/unavailable, negative credit, two users racing for same seat |
+| Attendance | Valid/mismatched identity, invalid upload, wrong reservation owner, repeat check-out |
+| State integrity | Reserve → check in → leave → check out; illegal transitions, rollback on error |
+| Violation handling | Report accepted/rejected, repeated approval, nonnegative deduction, concurrency |
+| API contracts | HTTP status codes, pagination envelope, validation errors and idempotency |
+| Persistence | Data migrations, FK constraints, referential integrity and rollback |
+
+A robust CI pipeline should run unit and integration tests, static analysis, dependency vulnerability checks, code-style validation and secret scanning before packaging.
+
+## Inspect the implementation
+
+- [Root Maven POM](https://github.com/lycoris9029/Library-Reservation-System/blob/main/pom.xml)
+
+## Related pages
+
+[Engineering review](/engineering/engineering-review) · [Maintenance roadmap](/engineering/roadmap)

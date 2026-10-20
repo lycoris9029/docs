@@ -1,0 +1,58 @@
+---
+title: "Engineering Overview"
+description: "Implementation scope, system capabilities, and technology stack"
+icon: "layers"
+---
+
+> **Documentation status:** This page describes the inspected backend source, not a verified production deployment. Implemented behavior and recommended changes are explicitly distinguished.
+
+The Library Reservation System is a Java/Spring Boot backend for administering library resources and user reservations. It combines reading-room and seat inventory, a reservation workflow, check-in/check-out assisted by third-party face comparison, violation reporting, user credit scores, and a reusable administrative platform (users, roles, departments, jobs, menus, dictionaries, monitoring and code generation).
+
+The project is built as a Maven multi-module application and exposes REST-style endpoints over HTTP. Persistence is implemented with Spring Data JPA and MySQL. Spring Security and JWT-based authentication protect most endpoints, while Redis supports short-lived login captcha information and online sessions.
+
+### Capability inventory
+
+| Capability | Implemented behavior | Main module |
+| --- | --- | --- |
+| Reading-room management | Create, list, modify, delete, export | `library-system` |
+| Seat administration | Manage seats, link each to a room, track numeric availability status | `library-system` |
+| Seat reservations | Create reservations for the authenticated user; query own reservations | `library-system` |
+| Attendance | Upload a photo for face-comparison-based check-in and check-out | `library-system` |
+| Violation reporting | Submit, review and process reports, including credit-score deduction | `library-system` |
+| Book catalog | Basic book-record CRUD and export (not a borrowing workflow) | `library-system` |
+| Security & administration | Login, captcha, JWT, role/permission checks, users and roles | `library-system` |
+| Shared infrastructure | Exception handling, Redis, file helpers, DTO base, Swagger | `library-common` |
+| Code generation | Backend/frontend scaffolding templates and generator APIs | `library-generator` |
+
+### Important implementation boundaries
+
+- The repository contains a **backend**, not the complete frontend application.
+- The book module is a **catalog CRUD module**; no book checkout/return workflow was found.
+- The reservation table does **not** contain a reserved time slot or start/end scheduled interval; the timestamps record creation and attendance events.
+- The seat state and reservation state are separate fields; the current implementation does not enforce every lifecycle invariant server-side.
+- The source was statically inspected; successful database initialization, live API responses, integration tests, and deployment have **not** been independently verified.
+
+## Technology Stack
+
+| Layer | Technology evidenced in the repository |
+| --- | --- |
+| Runtime / language | Java 8; Spring Boot 2.6.4 |
+| Build | Maven multi-module project (`pom.xml`) |
+| API | Spring MVC / REST controllers; Swagger and Knife4j dependencies |
+| Security | Spring Security; JWT (`jjwt`); bcrypt password encoding; method-level permission expressions |
+| Persistence | Spring Data JPA / Hibernate; MySQL JDBC driver; Druid connection pool |
+| Cache / sessions | Redis / Spring Data Redis |
+| Mapping and utilities | MapStruct, Lombok, Hutool, Apache POI |
+| External service | Baidu face comparison API (`AccessToken.idCard`) |
+| Observability | Druid monitoring, system monitor endpoint; exception logging |
+
+**Compatibility note.** These are the versions found in the supplied build files, not recommendations for a new greenfield deployment. Several components are old and should undergo dependency/security review before production use.
+
+## Inspect the implementation
+
+- [Root Maven POM](https://github.com/lycoris9029/Library-Reservation-System/blob/main/pom.xml)
+- [Runnable application POM](https://github.com/lycoris9029/Library-Reservation-System/blob/main/library-system/pom.xml)
+
+## Related pages
+
+[Get Started](/quickstart) · [System architecture](/engineering/system-architecture)

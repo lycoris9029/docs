@@ -1,0 +1,26 @@
+---
+title: "Authentication and Authorization"
+description: "JWT, captcha, permissions, and resource-level access control"
+icon: "shield-check"
+---
+
+> **Documentation status:** This page describes the inspected backend source, not a verified production deployment. Implemented behavior and recommended changes are explicitly distinguished.
+
+The service uses stateless Spring Security filter-based authentication and Spring method security. `TokenProvider` creates signed JWTs, `TokenFilter` validates requests, and the `@el.check(...)` expression evaluates permissions such as `librarySeat:add` and `libraryYuyue:list`. Passwords are hashed with `BCryptPasswordEncoder`.
+
+- **Public endpoints:** `GET /auth/code`, `POST /auth/login`, `DELETE /auth/logout`, root health text and selected documentation/static paths.
+- **Login protection:** arithmetic captcha challenge stored in Redis; encrypted credential submitted in the login request.
+- **Authenticated endpoints:** require JWT even when they have no `@PreAuthorize` method annotation.
+- **Permission controls:** most administrative and library CRUD operations enforce named permissions.
+- **Online sessions:** session/token information is also maintained through the online-user service and Redis utilities.
+
+**Current risk:** Some mutation endpoints (`/api/libraryYuyue/li`, `/dao`, `/tui`) have no explicit method-level ownership/role checks and accept reservation IDs from the client. JWT authentication alone is not proof that a caller owns the referenced reservation.
+
+## Inspect the implementation
+
+- [Security configuration](https://github.com/lycoris9029/Library-Reservation-System/blob/main/library-system/src/main/java/com/javabs/modules/security/config/SpringSecurityConfig.java)
+- [Token provider](https://github.com/lycoris9029/Library-Reservation-System/blob/main/library-system/src/main/java/com/javabs/modules/security/security/TokenProvider.java)
+
+## Related pages
+
+[Current security configuration docs](/engineering/authentication) · [Authentication API](/engineering/api-contract)

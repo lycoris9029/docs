@@ -1,0 +1,19 @@
+---
+title: "Maintenance Roadmap"
+description: "Proposed phased improvements, clearly separated from implemented behavior"
+icon: "route"
+---
+
+> **Documentation status:** This page describes the inspected backend source, not a verified production deployment. Implemented behavior and recommended changes are explicitly distinguished.
+
+**Phase 1 - Security and correctness.** Rotate secrets, normalize errors, enforce ownership, make seat claiming atomic, add transactional reservation/violation orchestration.
+
+**Phase 2 - Service contracts and reliability.** Introduce request/response DTOs, explicit reservation state transitions, database migrations, integration tests and audit logging.
+
+**Phase 3 - Library-specific product features.** Add time-slot availability if required by product scope, cancellation policies, no-show handling, notification hooks and administrative reporting. These are *not* established capabilities of the reviewed implementation.
+
+**Phase 4 - Developer experience.** Publish an OpenAPI specification, separate deployment profiles, add container builds and a reproducible local development environment.
+
+## Related pages
+
+[Engineering review](/engineering/engineering-review) · [Source traceability](/engineering/source-traceability)
