@@ -55,13 +55,14 @@
       },
       {
         "tab": "API Reference",
-        "groups": [
+        "pages": [
           {
             "group": "Backend API Contract",
             "pages": [
               "engineering/api-contract"
             ]
-          }
+          },
+          "engineering/new_page"
         ]
       }
     ]
