@@ -24,13 +24,6 @@
         "tab": "Documentation",
         "groups": [
           {
-            "group": "Get Started",
-            "pages": [
-              "index",
-              "quickstart"
-            ]
-          },
-          {
             "group": "Engineering Deep Dive",
             "pages": [
               "engineering/index",
